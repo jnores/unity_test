@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<control>
+	    <eje>hombro</eje>
+	    <adelante>A</adelante>
+	    <atras>Z</atras>
+	</control>
+	<control>
+	    <eje>codo</eje>
+	    <adelante>W</adelante>
+	    <atras>S</atras>
+	</control>
+	<control>
+	    <eje>munieca</eje>
+	    <adelante>E</adelante>
+	    <atras>D</atras>
+	</control>
+	<control>
+	    <eje>pinza</eje>
+	    <adelante>R</adelante>
+	    <atras>F</atras>
+	</control>
+</config>
