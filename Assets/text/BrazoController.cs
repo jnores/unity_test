@@ -8,7 +8,7 @@ using System.Xml;
 using System.IO;
   
 
-public class HombroController : MonoBehaviour {
+public class BrazoController : MonoBehaviour {
 
 	SortedDictionary<string, GameObject> nombreEjeToGameObject =
 		new SortedDictionary<string, GameObject>();
@@ -16,14 +16,26 @@ public class HombroController : MonoBehaviour {
 	/**
 	 * la estructura es keyCode { 'nombreEje': '', 'sentido': [+/-]1 }
 	 */
-	const string TAG_EJE = "nombreEje", TAG_SENTIDO = "sentido";
+	const string    TAG_NOMBRE = "nombre",
+					TAG_SENTIDO = "sentido",
+					TAG_ID = "id",
+					TAG_EJE = "eje",
+					TAG_ADELANTE = "adelante",
+					TAG_ATRAS = "atras"
+				;
 
 	SortedDictionary<KeyCode, SortedDictionary<string,string> > teclaToProperties =
 		new SortedDictionary< KeyCode, SortedDictionary<string,string>>();
 
+	SortedDictionary<int, SortedDictionary<string,string> > intToProperties =
+		new SortedDictionary< int, SortedDictionary<string,string>>();
+	
 	bool started = false;
 
 	int speed = 30;
+
+	static BrazoController sInstance;
+
 
 
 	// Use this for initialization
@@ -48,29 +60,38 @@ public class HombroController : MonoBehaviour {
 			print ("<<< CONFIG");
 			print ("<<< Start");
 		}
+		sInstance = this;
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		string eje, sentido;
+		string nombre, eje, sentido;
 		foreach(KeyValuePair<KeyCode, SortedDictionary<string,string>> entry in teclaToProperties)
 		{
 			if (Input.GetKey (entry.Key)) {
+				print ("nombre: " + entry.Value.ContainsKey (TAG_NOMBRE) +
+					"eje: " + entry.Value.ContainsKey (TAG_EJE) + 
+					"sentido: " + entry.Value.ContainsKey (TAG_SENTIDO));
 				if (
+					entry.Value.TryGetValue (TAG_NOMBRE, out nombre) &&
 					entry.Value.TryGetValue (TAG_EJE, out eje) &&
 					entry.Value.TryGetValue (TAG_SENTIDO, out sentido)
 				) {
 					GameObject obj;
 					int intSentido;
 					if (
-						nombreEjeToGameObject.TryGetValue (eje, out obj) &&
-						int.TryParse (sentido, out intSentido))
-						obj.transform.Rotate (intSentido * Vector3.up * speed * Time.deltaTime);
-					else
+						nombreEjeToGameObject.TryGetValue (nombre, out obj) &&
+						int.TryParse (sentido, out intSentido)
+					) {
+						rotar (obj, eje,intSentido);
+
+					} else
+					{
 						print ("No se encontro el objeto grafico");
+					}
 				}
 				else
-					print ("la configuracion es invalida");
+					print ("la configuracion es invalida - "+entry.Key);
 			}
 		}		
 	}
@@ -146,50 +167,52 @@ public class HombroController : MonoBehaviour {
 		{
 			XmlNodeList controlContent = controlInfo.ChildNodes;
 
-			string eje="", keyAdelante="", keyAtras="";
-				
+			string  keyAdelante="", keyAtras="";
+			int id=0;
+			SortedDictionary<string,string> obj = new SortedDictionary<string,string> ();	
+			SortedDictionary<string,string> objAdelante = new SortedDictionary<string,string> ();	
+			SortedDictionary<string,string> objAtras = new SortedDictionary<string,string> ();	
 
 			foreach (XmlNode controlItem in controlContent) // control item node.
 			{
-				if(controlItem.Name == "eje")
-				{
-					eje = controlItem.InnerText;
-
-				} 
-				else if(controlItem.Name == "adelante")
-				{
+				switch (controlItem.Name) {
+				case TAG_ADELANTE:
 					keyAdelante = controlItem.InnerText; 
-				} else if(controlItem.Name == "atras")
-				{
+					break;
+				case TAG_ATRAS:
 					keyAtras = controlItem.InnerText; 
+					break;
+				case TAG_ID:
+					int.TryParse(controlItem.InnerText, out id); 
+					break;
 				}
+				objAdelante.Add (controlItem.Name, controlItem.InnerText);
+				objAtras.Add (controlItem.Name, controlItem.InnerText);
+				obj.Add (controlItem.Name, controlItem.InnerText);
 			}
-			SortedDictionary<string,string> obj;
-			KeyCode key;
+			intToProperties.Add (id, obj);
+			print ("ID: " + id + "keyAtras: " + keyAtras + " || keyAdelante: " + keyAdelante);
 			if (keyAdelante != "") {
-				obj = new SortedDictionary<string,string>();
-
-				obj.Add (TAG_EJE, eje);
-				obj.Add (TAG_SENTIDO, "1");
+				KeyCode key;
+				objAdelante.Add (TAG_SENTIDO, "1");
 
 				//key = (KeyCode)System.Enum.Parse (typeof(KeyCode), keyAdelante.ToLower());
 				//teclaToProperties.Add (key, obj);
 
 				key = (KeyCode)System.Enum.Parse (typeof(KeyCode), keyAdelante.ToUpper());
-				teclaToProperties.Add (key, obj);
+				teclaToProperties.Add (key, objAdelante);
 			}
 			if (keyAtras != "") {
-				obj = new SortedDictionary<string,string> ();
-
-				obj.Add (TAG_EJE, eje);
-				obj.Add (TAG_SENTIDO, "-1");
+				KeyCode key;
+				objAtras.Add (TAG_SENTIDO, "-1");
 
 				//key = (KeyCode)System.Enum.Parse (typeof(KeyCode), keyAtras.ToLower());
 				//teclaToProperties.Add (key, obj);
 
 				key = (KeyCode)System.Enum.Parse (typeof(KeyCode), keyAtras.ToUpper());
-				teclaToProperties.Add (key, obj);
+				teclaToProperties.Add (key, objAtras);
 			}
+
 		}
 		// printDictionary(nombreArticulacionParameters);
 	}
@@ -202,5 +225,55 @@ public class HombroController : MonoBehaviour {
 			print("\t"+entry.Key+" => "+entry.Value);
 		}
 		print ("} \n<<< printDictionary:  ");
+	}
+
+	static public BrazoController getInstance()
+	{
+		return sInstance;
+	}
+
+	public void moverById (int ejeName, int valor)
+	{
+		string nombre, eje;
+		SortedDictionary<string,string> entry;
+		if (intToProperties.TryGetValue (ejeName, out entry))
+		{
+			
+			if (
+				entry.TryGetValue (TAG_NOMBRE, out nombre) &&
+				entry.TryGetValue (TAG_EJE, out eje)
+				
+			) {
+				GameObject obj;
+				if (
+					nombreEjeToGameObject.TryGetValue (nombre, out obj)
+				) {
+					print ("Rotar BY ID: "+ ejeName + "  - "+valor);
+					rotar (obj,eje, valor);
+				} else
+				{
+					print ("No se encontro el objeto grafico");
+				}
+			}
+			else
+				print ("la configuracion es invalida");
+		}
+
+	}
+
+	private void rotar(GameObject obj, string eje, int intSentido)
+	{
+
+		switch (eje) {
+		case "X":
+			obj.transform.Rotate (intSentido * Vector3.right * speed * Time.deltaTime);
+			break;
+		case "Y":
+			obj.transform.Rotate (intSentido * Vector3.up * speed * Time.deltaTime);
+			break;
+		case "Z":
+			obj.transform.Rotate (intSentido * Vector3.back * speed * Time.deltaTime);
+			break;
+		}
 	}
 }
