@@ -32,7 +32,7 @@ public class BrazoController : MonoBehaviour {
 	
 	bool started = false;
 
-	int speed = 30;
+	int speed = 1;
 
 	static BrazoController sInstance;
 
@@ -266,13 +266,13 @@ public class BrazoController : MonoBehaviour {
 
 		switch (eje) {
 		case "X":
-			obj.transform.Rotate (intSentido * Vector3.right * speed * Time.deltaTime);
+			obj.transform.Rotate (intSentido * Vector3.right);//  * speed * Time.deltaTime);
 			break;
 		case "Y":
-			obj.transform.Rotate (intSentido * Vector3.up * speed * Time.deltaTime);
+			obj.transform.Rotate (intSentido * Vector3.up);// * speed * Time.deltaTime);
 			break;
 		case "Z":
-			obj.transform.Rotate (intSentido * Vector3.back * speed * Time.deltaTime);
+			obj.transform.Rotate (intSentido * Vector3.back);// * speed * Time.deltaTime);
 			break;
 		}
 	}
